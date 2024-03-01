@@ -1,3 +1,6 @@
+import os
+import requests
+from django.contrib.auth import get_user_model, authenticate, login
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import ListModelMixin
