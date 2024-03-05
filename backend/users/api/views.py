@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from backend.users.models import User
 
-from .serializers import UserSerializer
+from .serializers import UserSerializer, LoginSerializer
 
 def send_mail(email, content):
     email_params = {
@@ -69,7 +69,7 @@ class RegisterView(APIView):
                             # mail verify
                             refresh = RefreshToken.for_user(user)
                             response = send_mail(
-                                email, f"{os.getenv('FRONT_URL')}/mail-verify/?token={str(refresh.access_token)}"
+                                email, f"{os.getenv('FRONT_URL')}/mail-verify/?token={ (refresh.access_token)}"
                             )
                             if response.status_code == 200:
                                 return Response(
