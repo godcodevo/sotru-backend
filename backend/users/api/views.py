@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from backend.users.models import User
 
-from .serializers import UserSerializer
+from .serializers import UserSerializer, LoginSerializer
 
 def send_mail(email, content):
     email_params = {
@@ -161,7 +161,7 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            print(serializer.validated_data)
+            print("user validated ------------------------>", serializer.validated_data)
             email = serializer.validated_data["email"]
             password = serializer.validated_data["password"]
             user = authenticate(request, email=email, password=password)
