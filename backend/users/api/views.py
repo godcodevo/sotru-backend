@@ -69,7 +69,7 @@ class RegisterView(APIView):
                             # mail verify
                             refresh = RefreshToken.for_user(user)
                             response = send_mail(
-                                email, f"{os.getenv('FRONT_URL')}/mail-verify/?token={ (refresh.access_token)}"
+                                email, f"{os.getenv('FRONT_URL')}/mail-verify/?token={str(refresh.access_token)}"
                             )
                             if response.status_code == 200:
                                 return Response(
@@ -161,7 +161,7 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            print(serializer.validated_data)
+            print("user validated ------------------------>", serializer.validated_data)
             email = serializer.validated_data["email"]
             password = serializer.validated_data["password"]
             user = authenticate(request, email=email, password=password)
