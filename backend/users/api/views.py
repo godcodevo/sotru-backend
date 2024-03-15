@@ -1,7 +1,6 @@
 import os
 import requests
-import boto3
-from django.contrib.auth import get_user_model, authenticate, login
+from django.contrib.auth import authenticate, login
 from rest_framework import status, permissions
 from rest_framework.decorators import action
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, UpdateModelMixin
@@ -15,12 +14,13 @@ from backend.users.models import User
 
 from .serializers import UserSerializer, LoginSerializer
 
+
 def send_mail(email, content):
     email_params = {
         "apikey": os.getenv("MAIL_KEY"),
         "from": "ka.tahara.dev@gmail.com",
         "to": email,
-        "subject": "Email Verify - Metricloop Account",
+        "subject": "Email Verify - SoTru Account",
         "body": f"{content}",
         "isTransactional": True,
     }
@@ -30,6 +30,7 @@ def send_mail(email, content):
         data=email_params,
     )
     return response
+
 
 class UserViewSet(RetrieveModelMixin, ListModelMixin, UpdateModelMixin, GenericViewSet):
     serializer_class = UserSerializer
@@ -44,7 +45,8 @@ class UserViewSet(RetrieveModelMixin, ListModelMixin, UpdateModelMixin, GenericV
     def me(self, request):
         serializer = UserSerializer(request.user, context={"request": request})
         return Response(status=status.HTTP_200_OK, data=serializer.data)
-    
+
+
 class RegisterView(APIView):
     permission_classes = (permissions.AllowAny,)
     authentication_classes = ()
@@ -52,28 +54,37 @@ class RegisterView(APIView):
     def post(self, request):
         try:
             data = request.data
-            username = data["fullName"]
+            firstName = data["firstName"]
+            lastName = data["lastName"]
+            role = data["user_type"]
+            phoneNumber = data["phoneNumber"]
             email = data["email"]
             password = data["password"]
-            confirmPassword = data["confirmPassword"]
 
-            if password == confirmPassword:
+            if password:
                 if len(password) >= 8:
                     if not User.objects.filter(email=email).exists():
                         user = User.objects.create_user(
                             email=email,
-                            fullname=username,
+                            fullname=firstName + " " + lastName,
+                            first_name=firstName,
+                            last_name=lastName,
+                            user_type=role,
+                            phoneNumber=phoneNumber,
                             password=password,
                         )
                         if User.objects.filter(email=email).exists():
                             # mail verify
                             refresh = RefreshToken.for_user(user)
                             response = send_mail(
-                                email, f"{os.getenv('FRONT_URL')}/mail-verify/?token={str(refresh.access_token)}"
+                                email,
+                                f"{os.getenv('FRONT_URL')}/mail-verify/?token={str(refresh.access_token)}",
                             )
                             if response.status_code == 200:
                                 return Response(
-                                    {"success": "User created successfully and sent verification link."},
+                                    {
+                                        "success": "User created successfully and sent verification link."
+                                    },
                                     status=status.HTTP_201_CREATED,
                                 )
                             else:
@@ -108,24 +119,28 @@ class RegisterView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+
 class MailVerifyView(APIView):
     def post(self, request):
         user = request.user
-        user.mail_verify = True
+        user.mail_verify_statu = True
         user.save()
         return Response({"success": "Email verified"}, status=status.HTTP_200_OK)
+
 
 class ForgetPasswordView(APIView):
     permission_classes = (AllowAny,)
     authentication_classes = ()
 
     def post(self, request):
-        # email = request.data.get("email")
         email = request.data["email"]
         try:
             user = User.objects.get(email=email)
             refresh = RefreshToken.for_user(user)
-            response = send_mail(email, f"{os.getenv('FRONT_URL')}/reset-password/?token={str(refresh.access_token)}")
+            response = send_mail(
+                email,
+                f"{os.getenv('FRONT_URL')}/reset-password/?token={str(refresh.access_token)}",
+            )
             if response.status_code == 200:
                 return Response(
                     {"success": "sent verification link."},
@@ -138,7 +153,9 @@ class ForgetPasswordView(APIView):
                 )
         except Exception as e:
             print(e)
-            return Response({"error": "user does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "user does not exist"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class ResetPasswordView(APIView):
@@ -167,14 +184,9 @@ class LoginView(APIView):
             user = authenticate(request, email=email, password=password)
             print(user)
             if user is not None:
-                if user.mail_verify:
+                if user.mail_verify_statu:
                     login(request, user)
                     refresh = RefreshToken.for_user(user)
-                    # return Response(
-                    #     {
-                    #         "token": str(refresh.access_token),
-                    #     }
-                    # )
                     return Response(
                         {
                             "status": {
@@ -184,7 +196,7 @@ class LoginView(APIView):
                             "result": {
                                 "token": str(refresh.access_token),
                                 "user": {
-                                    "username": user.fullname,
+                                    "username": user.first_name,
                                     "email": user.email,
                                     # Include any other user fields as needed
                                 },
@@ -232,7 +244,10 @@ class GetUserView(APIView):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"error": "User does not exist. Please login"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "User does not exist. Please login"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class GetUserInfo(APIView):
@@ -241,7 +256,9 @@ class GetUserInfo(APIView):
         all_users = User.objects.all()
 
         # Extract relevant information (username and email) from each user object
-        users_info = [{"username": user.fullname, "email": user.email} for user in all_users]
+        users_info = [
+            {"username": user.fullname, "email": user.email} for user in all_users
+        ]
 
         return Response({"user": users_info}, status=status.HTTP_200_OK)
 
