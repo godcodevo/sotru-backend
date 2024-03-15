@@ -12,6 +12,8 @@ class UserSerializer(serializers.ModelSerializer[User]):
             "url": {"view_name": "api:user-detail", "lookup_field": "pk"},
         }
 
-class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField()
+
+class LoginSerializer(serializers.ModelSerializer[User]):
+    class Meta:
+        model = User
+        fields = ["password", "email"]
