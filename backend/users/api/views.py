@@ -14,7 +14,6 @@ from backend.users.models import User
 
 from .serializers import UserSerializer, LoginSerializer
 
-
 def send_mail(email, content):
     email_params = {
         "apikey": os.getenv("MAIL_KEY"),
@@ -182,7 +181,7 @@ class LoginView(APIView):
             email = serializer.validated_data["email"]
             password = serializer.validated_data["password"]
             user = authenticate(request, email=email, password=password)
-            print(user)
+            print("user=====>", user)
             if user is not None:
                 if user.mail_verify_statu:
                     login(request, user)
@@ -198,6 +197,7 @@ class LoginView(APIView):
                                 "user": {
                                     "username": user.first_name,
                                     "email": user.email,
+                                    "permission": user.user_type,
                                     # Include any other user fields as needed
                                 },
                             },

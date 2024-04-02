@@ -13,7 +13,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
         }
 
 
-class LoginSerializer(serializers.ModelSerializer[User]):
-    class Meta:
-        model = User
-        fields = ["password", "email"]
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField()
+    
